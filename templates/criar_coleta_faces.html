@@ -1,0 +1,125 @@
+{% extends 'base.html' %}
+{% block content %}
+
+<style>
+    body {
+        background-color: rgb(234, 238, 238);
+    }
+</style>
+
+<body class="d-flex justify-content-center align-items-center vh-100">
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-md-10 col-lg-8 border shadow-sm p-5 rounded bg-body">
+                <nav class="navbar bg-body ">
+                    <div class="container justify-content-center">
+                        <img src="../media/assets/brasaosuperior.png" alt="Brasao Camara Municipal" width="170"
+                            height="80">
+                    </div>
+                </nav>
+                <div class="text-center mb-4">
+                    <h2 class="border-bottom pb-2">Registro de entrada</h2>
+                </div>
+
+                <div class="d-flex flex-column flex-lg-row gap-4 ">
+                    <div class="col-md-5">
+                        <img class="img-fluid rounded border border-dark mb-3"
+                            src="{% if funcionario.funcionario_coletas.last %}{{ funcionario.funcionario_coletas.last.image.url }}
+                        ?t={{ funcionario.funcionario_coletas.last.created_at.timestamp }}{% else %}{{ funcionario.foto.url }}{% endif %}" alt="Foto da pessoa"
+                            width="250">
+
+                        <p><strong>Nome:</strong> {{ funcionario.nome }}</p>
+                        <p><strong>Documento:</strong> {{ funcionario.cpf }}</p>
+                    </div>
+
+                    <div class="col-md-7">
+                        {% if not extracao_ok %}
+                        <div class="alert alert-warning text-center" role="alert">
+                            <i class="bi bi-exclamation-triangle-fill me-2"></i> Centralize seu rosto antes de extrairas amostras.
+                        </div>
+
+                        <img class="img-fluid rounded border border-dark border-3 mb-3" id="webcam"
+                            src="{% url 'detectar_camera' %}" width="400">
+
+                        <form method="POST" action="{% url 'criar_coleta_faces' funcionario.id %}">
+                            {% csrf_token %}
+                            <div class="mb-3"> <label for="observacao" class="form-label">Observação:</label>
+                                <div class="mb-3">
+                                    {{ form.observacao.label_tag }}
+                                    <select name="observacao" class="form-select" id="id_observacao">
+                                        <option value="" selected>Selecione um setor...</option>
+                                        <option value="Gab. Antonio Jorge (Toninho Cury)">Gab. Antonio Jorge (Toninho
+                                            Cury)</option>
+                                        <option value="Gab. Brenda Evelly">Gab. Brenda Evelly</option>
+                                        <option value="Gab. Elizabeth (Profº Beth)">Gab. Elizabeth (Profº Beth)</option>
+                                        <option value="Gab. Ezequiel">Gab. Ezequiel</option>
+                                        <option value="Gab. Gladston">Gab. Gladston</option>
+                                        <option value="Gab. Itamar">Gabiente Itamar</option>
+                                        <option value="Gab. Jõao Batista (Cabo Batista)">Gab. Jõao Batista (CaboBatista)</option>
+                                        <option value="Gab. José Carlos (Carlito)">Gab. José Carlos (Carlito)</option>
+                                        <option value="Gab. José Eustáquio">Gab. José Eustáquio</option>
+                                        <option value="Gab. José Luiz">Gab. José Luiz</option>
+                                        <option value="Gab. Júlio César">Gab. Júlio César</option>
+                                        <option value="Gab. Leomar (Sgt Leomar)">Gab. Leomar (Sgt Leomar)</option>
+                                        <option value="Gab. Mauri (Mauri da JL)">Gab. Mauri (Mauri da JL)</option>
+                                        <option value="Gab. Otaviano">Gab. Otaviano</option>
+                                        <option value="Gab. Paulo Augusto (Paulinho)">Gab. Paulo Augusto (Paulinho)</option>
+                                        <option value="Gab. Paulo Henrique">Gab. Paulo Henrique</option>
+                                        <option value="Gab. Willian ">Gab. Willian </option>
+                                        <option value="Plenário ">Plenário</option>
+                                        <option value="Presidência">Presidência</option>
+                                    </select>
+                                    {{ form.observacao }}
+                                </div>
+                            </div>
+                            {% if messages %}
+                            <ul class="messages list-unstyled">
+                                {% for message in messages %}
+                                <li class="alert {% if message.tags %}alert-{{ message.tags }}{% endif %}">
+                                    {{ message }}
+                                </li>
+                                {% endfor %}
+                            </ul>
+                            {% endif %}
+                            <button class="btn btn-warning btn-lg w-100" type="submit"
+                                onclick="document.getElementById('cliked').value='True';">
+                                Extrair amostras
+                            </button>
+                            <input type="hidden" id="cliked" name="cliked" value="False">
+                        </form>
+
+                        {% else %}
+                        <div class="alert alert-success text-center" role="alert">
+                            Amostras coletadas com sucesso!
+                        </div>
+
+                        <h3>Amostras Salvas - Ok</h3>
+                        <div class="d-flex flex-wrap gap-2">
+                            {% for file_path in file_paths %}
+                            <div class="col-2 mb-3">
+                                <div class="img-div">
+                                    <img src="{{ file_path.image.url }}" alt="Face sample" class="card-img-top"
+                                        width="50">
+                                    <div class="card-body text-center">
+                                        <h5 class="card-title">Face {{ forloop.counter }}</h5>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        <!-- FINALIZA EXTRAÇÃO -->
+
+                        {% endif %}
+
+                        {% if erro %} <!--Evento caso o usuario clicar 2 vezes no botao -->
+                        <h3 class="text-danger"> {{erro}}</h3>
+                        {% endif %}
+                        <div class="d-grid gap-2 mt-3">
+                            <a href="{% url 'criar_funcionario' %}" class="btn btn-outline-primary">Voltar</a>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+</body>
+{% endblock %}

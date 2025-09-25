@@ -1,0 +1,37 @@
+{% extends 'base.html' %}
+{% block content %}
+
+
+
+
+<div class="container d-flex justify-content-center align-items-center min-vh-100">
+    <div class="col-md-6 col-lg-5">
+
+        {% if messages %}
+        <div class="alert alert-success text-center" role="alert">
+            {{ messages }}
+        </div>
+        {% endif %}
+
+        {% if funcionario %}
+        <div class="card shadow rounded-3">
+            <div class="card-body p-4 p-md-5">
+
+                <h2 class="card-title text-center mb-4">Registro de Entrada</h2>
+                <h5 class="card-subtitle mb-4 text-center text-muted">Funcionário: {{ funcionario.nome }}</h5>
+
+                <form method="post"
+                    action="{% url 'seleciona_gabinete' funcionario.id %}">
+                    {% csrf_token %}
+
+                    {{ form.as_p }}
+
+                    <button class="btn btn-primary w-100 mt-4" type="submit">Registrar Setor</button>
+                </form>
+                {% endif %}
+                
+                </form>
+
+            </div>
+        </div>
+        {%endblock%}

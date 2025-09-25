@@ -1,0 +1,44 @@
+{% extends 'base.html' %}
+{% block content %}
+
+<style>
+    body{
+        background-color: rgb(234, 238, 238);
+    }
+</style>
+
+<body class="d-flex justify-content-center align-items-center vh-100 ">
+
+    <div class="row align-items-center justify-content-center container">
+        <form class="col-md-5 border shadow-sm p-4 bg-body" method="POST" enctype="multipart/form-data">
+            {% csrf_token %}
+            <nav class="navbar bg-body ">
+                <div class="container justify-content-center">
+                    <img src="../media/assets/brasaosuperior.png" alt="Brasao Camara Municipal" width="170" height="80">
+                </div>
+            </nav>
+
+
+            {{ form }}
+
+            {% if form.errors %}
+
+            {% endif %}
+
+            <div class="d-grid gap-2">
+                <button class="btn btn-outline-success mt-3" type="submit">Salvar e continuar</button>
+            </div>
+
+            <div class="d-grid gap-2 mt-3">
+                <a href="{% url 'encontra_funcionario' %}" class="btn btn-outline-secondary">Já é Cadastrado ?</a>
+            </div>
+
+            <div class="d-grid gap-2 mt-3">
+                <a href="{% url 'tela_reconhecimento' %}" class="btn btn-outline-primary">Fazer Reconhecimento</a>
+            </div>
+
+        </form>
+    </div>
+
+</body>
+{% endblock %}

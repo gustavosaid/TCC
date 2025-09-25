@@ -1,0 +1,51 @@
+{% extends 'base.html' %}
+{% block content %}
+
+<div class="container"
+    style="max-width:700px; margin:auto; padding:30px; background-color:#fff; border-radius:15px; box-shadow:0 8px 20px rgba(0,0,0,0.1);">
+    <h1 style="text-align:center; color:#1f618d; margin-bottom:10px;">Reconhecimento Facial</h1>
+    <p style="text-align:center; color:#566573; margin-bottom:20px;">Por favor, posicione seu rosto em frente à câmera.
+    </p>
+
+    <div style="text-align:center;">
+        <img src="{% url 'camera_reconhecimento' %}" width="550" height="500"
+            style="border:3px solid #1f618d; border-radius:10px; object-fit:cover;" />
+    </div>
+
+</div>
+
+<script>
+    // Inicia um "verificador" que executa a cada 1.5 segundos (1500ms)
+    const intervalId = setInterval(() => {
+
+        // Faz uma requisição para a sua nova view 'verifica_status_reconhecimento'
+        fetch("{% url 'verifica_status_reconhecimento' %}", { credentials: 'include' })
+            .then(response => response.json()) // Converte a resposta para JSON
+            .then(data => {
+                console.log("Status:", data.status); // Útil para depurar no console do navegador (F12)
+
+                // Se o servidor respondeu 'sucesso', significa que um rosto foi reconhecido
+                if (data.status === 'sucesso') { // É uma boa prática verificar o status
+
+                    const mensagemConfirmacao = `Você confirma que é ${data.funcionario_nome}?`;
+
+                    if (window.confirm(mensagemConfirmacao)) {
+                        // Se o usuário clicou em "OK"
+                        console.log("Usuário confirmou. Redirecionando para:", data.redirect_url);
+                        alert('Identidade confirmada! Registrando entrada...');
+                        window.location.href = data.redirect_url;
+
+                    } else {
+                        // Se o usuário clicou em "Cancelar"
+                        console.log("Usuário negou a identidade. Voltando para a página anterior.");
+                        alert('Operação cancelada. Tente novamente.');
+                        window.history.back();
+                    }
+                }
+                // Opcional: Adicione um 'else' aqui para tratar casos onde o status não é 'sucesso'
+            });
+
+    }, 5000); // O tempo da verificação é de 1.5 segundos. Pode ajustar se necessário.
+</script>
+
+{% endblock %}

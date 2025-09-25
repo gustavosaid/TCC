@@ -1,0 +1,37 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<style>
+    body {
+        background-color: rgb(234, 238, 238);
+    }
+</style>
+
+<body class="d-flex justify-content-center align-items-center vh-100">
+    <div class="row align-items-center justify-content-center container">
+        <form class="col-md-5 border shadow-sm p-4 bg-body" method="GET" action="{% url 'buscar_funcionario' %}">
+            <nav class="navbar bg-body ">
+                <div class="container justify-content-center">
+                    <img src="../media/assets/brasaosuperior.png" alt="Brasao Camara Municipal" width="170" height="80">
+                </div>
+            </nav>
+            <div class="d-grid gap-2 mt-3">
+                <label for="cpf">CPF:</label>
+                <input type="text" id="cpf" name="cpf" class="form-control" maxlength="11"
+                    placeholder="Digite 11 números do CPF">
+                <button class="btn btn-outline-success mt-3" type="submit">Entrar</button>
+                <a href="{% url 'criar_funcionario' %}" class="btn btn-outline-primary">Voltar</a>
+            </div>
+            
+        </form>
+
+        <!-- {% if messages %}
+        <ul class="messages">
+            {% for message in messages %}
+            <li class="{{ message.tags }}">{{ message }}</li>
+            {% endfor %}
+        </ul> -->
+    </div>
+    {% endif %}
+    {% endblock %}
+</body>
