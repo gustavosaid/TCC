@@ -1,0 +1,4 @@
+# nixpacks.toml
+
+[phases.install]
+aptPkgs = ["libgl1-mesa-glx", "libglib2.0-0", "ffmpeg"]
