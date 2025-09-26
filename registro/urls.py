@@ -3,7 +3,7 @@ from .views import (criar_funcionario, criar_coleta_faces, detectar_camera,
                     buscar_funcionario, encontra_funcionario,camera_reconhecimento,tela_reconhecimento, seleciona_gabinete, verifica_status_reconhecimento )
 
 urlpatterns = [
-    path('index', criar_funcionario, name='criar_funcionario'),
+    path('', criar_funcionario, name='criar_funcionario'),
     path('criar_coleta_faces/<int:funcionario_id>', criar_coleta_faces, name='criar_coleta_faces'),
     path('detectar_camera/', detectar_camera, name='detectar_camera'),
     path('buscar_funcionario/',buscar_funcionario, name='buscar_funcionario'),

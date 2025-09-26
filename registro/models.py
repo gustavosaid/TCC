@@ -15,7 +15,7 @@ class Funcionario(models.Model):
     nome = models.CharField(max_length=50,  blank=True)
     cpf = models.CharField(max_length=11, unique=True) #evita cpf duplicado
     observacao = models.CharField(max_length=50, blank=True)
-    dataHora = models.DateTimeField(default=now) 
+    dataHora = models.DateTimeField(default=timezone.now) 
 
     def __str__(self):
         return self.nome
