@@ -21,7 +21,7 @@ from django.urls import reverse
 # from .treinamento import treinar_face
 
 # Instância da câmera global
-camera_detection = VideoCamera()
+
 
 
 # Função para capturar o frame com a face detectada
@@ -36,6 +36,7 @@ def gen_detect_face(camera):
 
 # Streaming para detecção facial
 def detectar_camera(request):
+    camera_detection = VideoCamera()
     return StreamingHttpResponse(
         
         gen_detect_face(camera_detection),
@@ -99,6 +100,7 @@ def extract(camera_detection, funcionario_slug):
 
 # Função principal de extração
 def face_extract(context, funcionario):
+    camera_detection = VideoCamera()
     num_coletas = ColetaFaces.objects.filter(
         funcionario__slug=funcionario.slug).count()
     
