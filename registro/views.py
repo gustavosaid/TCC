@@ -17,6 +17,7 @@ from tkinter import simpledialog
 from django.utils import timezone
 from .forms import ColetaEntradaForms
 from django.urls import reverse
+from django.views.decorators.csrf import csrf_exempt
 
 # from .treinamento import treinar_face
 
@@ -43,6 +44,7 @@ def detectar_camera(request):
         content_type='multipart/x-mixed-replace; boundary=frame'
     )
 
+@csrf_exempt
 # Criação de funcionário
 def criar_funcionario(request):
     if request.method == 'POST':
@@ -55,7 +57,7 @@ def criar_funcionario(request):
 
     return render(request, 'criar_funcionario.html', {'form': form})
 
-
+@csrf_exempt
 # Função de extração de imagens e retornar o file_path
 def extract(camera_detection, funcionario_slug):
     amostra = 0
@@ -98,6 +100,8 @@ def extract(camera_detection, funcionario_slug):
     camera_detection.restart()  # Reinicia a câmera após captura
     return file_paths
 
+
+@csrf_exempt
 # Função principal de extração
 def face_extract(context, funcionario):
     camera_detection = VideoCamera()
@@ -130,7 +134,7 @@ def face_extract(context, funcionario):
 
     return context
         
-
+@csrf_exempt
 # Criação de coletas de faces
 def criar_coleta_faces(request, funcionario_id):
     print(funcionario_id) #id do funcionario cadastrado
