@@ -29,7 +29,7 @@ CRYPTOGRAPHY_KEY = '1a852aa6358de0596863f1480ce5864a64783291122dab40dad199e7c237
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ["*"]
 SESSION_COOKIE_SECURE = False  
 
 
