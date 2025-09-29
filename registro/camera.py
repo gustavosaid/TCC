@@ -109,7 +109,7 @@ class VideoCamera:
         frame = cv2.resize(frame, (640, 480))
 
         faces = self.face_cascade.detectMultiScale(
-            frame, scaleFactor=1.1, minNeighbors=10, minSize=(50, 50), maxSize=(300, 300)
+            frame, scaleFactor=1.1, minNeighbors=8, minSize=(70, 70), maxSize=(400, 400)
         )
 
         for (x, y, w, h) in faces:

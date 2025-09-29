@@ -23,7 +23,7 @@ from django.views.decorators.csrf import csrf_exempt
 
 # Instância da câmera global
 
-
+camera_detection = VideoCamera()
 
 # Função para capturar o frame com a face detectada
 def gen_detect_face(camera):
@@ -37,14 +37,14 @@ def gen_detect_face(camera):
 
 # Streaming para detecção facial
 def detectar_camera(request):
-    camera_detection = VideoCamera()
+    
     return StreamingHttpResponse(
         
         gen_detect_face(camera_detection),
         content_type='multipart/x-mixed-replace; boundary=frame'
     )
 
-@csrf_exempt
+
 # Criação de funcionário
 def criar_funcionario(request):
     if request.method == 'POST':
@@ -57,7 +57,7 @@ def criar_funcionario(request):
 
     return render(request, 'criar_funcionario.html', {'form': form})
 
-@csrf_exempt
+
 # Função de extração de imagens e retornar o file_path
 def extract(camera_detection, funcionario_slug):
     amostra = 0
@@ -101,10 +101,10 @@ def extract(camera_detection, funcionario_slug):
     return file_paths
 
 
-@csrf_exempt
+
 # Função principal de extração
 def face_extract(context, funcionario):
-    camera_detection = VideoCamera()
+    # camera_detection = VideoCamera()
     num_coletas = ColetaFaces.objects.filter(
         funcionario__slug=funcionario.slug).count()
     
@@ -134,7 +134,7 @@ def face_extract(context, funcionario):
 
     return context
         
-@csrf_exempt
+
 # Criação de coletas de faces
 def criar_coleta_faces(request, funcionario_id):
     print(funcionario_id) #id do funcionario cadastrado
@@ -216,7 +216,7 @@ def captura_reconhece_faces(request):
 
     # Configura câmera
     camera = cv2.VideoCapture(0, cv2.CAP_DSHOW)
-    largura, altura = 200, 200
+    largura, altura = 220, 220
     
 
     while True:
