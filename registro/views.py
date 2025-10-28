@@ -15,7 +15,6 @@ from django.conf import settings
 import tempfile
 from django.core.files import File
 from django.core.files.base import ContentFile
-
 from tkinter import simpledialog
 from django.utils import timezone
 from .forms import ColetaEntradaForms
