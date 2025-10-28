@@ -88,7 +88,9 @@ WSGI_APPLICATION = 'gestao.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
+        # 'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
+        'NAME': '/data/db.sqlite3', 
+        # (Se usou o Mount Path /opt/render/project/src/data, use esse caminho aqui)
     }
 }
 
