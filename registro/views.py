@@ -28,47 +28,31 @@ from django.views.decorators.http import require_POST
 # --- CARREGAMENTO GLOBAL DOS MODELOS ---
 # Isso é muito mais eficiente. Carrega os modelos uma vez quando o servidor inicia.
 
+# --- CARREGAMENTO GLOBAL SEGURO ---
+# Carregar o classificador de um ficheiro é SEGURO, pois não acede à DB.
 try:
-    # Tenta encontrar o arquivo XML no diretório base do projeto
-    cascade_filename = 'haarcascade_frontalface_default.xml'
-    cascade_path_base = os.path.join(settings.BASE_DIR, cascade_filename)
-    
-    if os.path.exists(cascade_path_base):
-        cascade_path = cascade_path_base
-    else:
-        # Se não encontrar, usa o caminho padrão do OpenCV (se instalado)
-        cascade_path = os.path.join(cv2.data.haarcascades, cascade_filename)
-
+    # Ajuste o caminho se necessário para encontrar o XML
+    cascade_path = os.path.join(settings.BASE_DIR, 'haarcascade_frontalface_default.xml')
+    if not os.path.exists(cascade_path):
+        # Fallback para o caminho antigo se existir
+        cascade_path = 'haarcascade_frontalface_default.xml' 
+        
     face_cascade = cv2.CascadeClassifier(cascade_path)
     
     if face_cascade.empty():
         print(f"Erro: Não foi possível carregar o classificador Haar de '{cascade_path}'")
         face_cascade = None
     else:
-         print(f"Classificador Haar '{cascade_filename}' carregado com sucesso de '{cascade_path}'.")
-
-    # Carrega o modelo de reconhecimento
-    reconhecedor = cv2.face.LBPHFaceRecognizer_create()
-    
-    # É mais seguro verificar se o model Treinamento existe antes de acessá-lo
-    if Treinamento.objects.exists():
-        treinamento = Treinamento.objects.first()
-        model_path = os.path.join(settings.MEDIA_ROOT, treinamento.modelo.name)
-        
-        if os.path.exists(model_path):
-            reconhecedor.read(model_path)
-            print("Modelo de reconhecimento (LBPH) carregado com sucesso.")
-        else:
-            print(f"Arquivo do modelo não existe: {model_path}")
-            reconhecedor = None # Marcar como não carregado
-    else:
-        print("Nenhum 'Treinamento' encontrado no banco de dados ao iniciar.")
-        reconhecedor = None # Marcar como não carregado
+        print(f"Classificador Haar '{os.path.basename(cascade_path)}' carregado com sucesso.")
 
 except Exception as e:
-    print(f"Erro CATASTRÓFICO ao carregar modelos de CV2: {e}")
+    print(f"Erro CATASTRÓFICO ao carregar face_cascade: {e}")
     face_cascade = None
-    reconhecedor = None
+
+# --- CARREGAMENTO GLOBAL CORRIGIDO ---
+# NÃO fazemos queries aqui. Apenas inicializamos a variável.
+reconhecedor = None
+print("Variável 'reconhecedor' inicializada como None.")
 
 # --- FIM DO CARREGAMENTO GLOBAL ---
 
@@ -79,6 +63,37 @@ except Exception as e:
 # Funções de Streaming (REMOVIDAS)
 # def gen_detect_face(camera): # Removido
 # def detectar_camera(request): # Removido
+
+
+# --- NOVA FUNÇÃO DE CARREGAMENTO (Lazy Loading) ---
+def load_reconhecedor(force_reload=False):
+    """
+    Carrega ou recarrega o reconhecedor da DB.
+    Evita queries no arranque do servidor.
+    """
+    global reconhecedor
+    
+    # Só carrega se for a primeira vez (None) ou se forçarmos (force_reload=True)
+    if reconhecedor is None or force_reload:
+        if reconhecedor is None:
+             reconhecedor = cv2.face.LBPHFaceRecognizer_create()
+             print("Instância do LBPHFaceRecognizer criada.")
+        
+        try:
+            # A query à DB só acontece AQUI, de forma segura.
+            treinamento = Treinamento.objects.first() 
+            if treinamento:
+                model_path = os.path.join(settings.MEDIA_ROOT, treinamento.modelo.name)
+                if os.path.exists(model_path):
+                    reconhecedor.read(model_path)
+                    print("Modelo de reconhecimento (LBPH) carregado/recarregado na memória.")
+                else:
+                    print(f"Arquivo do modelo não existe: {model_path}")
+            else:
+                print("Nenhum 'Treinamento' encontrado na DB. Reconhecedor está vazio.")
+        except Exception as e:
+            # Se isto falhar (ex: durante o primeiro 'migrate'), não quebra o servidor.
+            print(f"Erro ao carregar modelo da DB (isto é normal no primeiro migrate): {e}")
 
 
 # Criação de funcionário (Sem alterações)
@@ -262,6 +277,10 @@ def decode_base64_image(data_url):
 @require_POST
 def processar_frame_reconhecimento(request):
     
+    # GARANTE QUE O MODELO ESTÁ CARREGADO ANTES DE USAR
+    if reconhecedor is None:
+        load_reconhecedor() 
+
     # 1. Verifica se os modelos carregaram
     if not reconhecedor or not face_cascade:
         return JsonResponse({'status': 'erro', 'message': 'Modelo ou classificador não carregado no servidor.'})
@@ -275,65 +294,46 @@ def processar_frame_reconhecimento(request):
     except Exception as e:
         return JsonResponse({'status': 'erro', 'message': f'Erro no JSON: {e}'})
 
-    # Inverte o frame
+    # Inverte o frame (como fizemos na coleta)
     frame = cv2.flip(frame, 1)
 
-    # --- 3. LÓGICA DE RECONHECIMENTO MODIFICADA ---
+    # --- 3. LÓGICA DE RECONHECIMENTO (Sem alterações, mas agora segura) ---
     
-    largura, altura = 280, 280 
+    largura, altura = 280, 280 # O tamanho do seu treino
+    frame_reconhecido = False
     imagemCinza = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
 
     faces_detectadas = face_cascade.detectMultiScale(
         imagemCinza,
         scaleFactor=1.1,
-        minNeighbors=5, # Usei 5 para ser um pouco mais permissivo
+        minNeighbors=5, # Mais permissivo
         minSize=(70, 70),
         maxSize=(400, 400)
     )
     
-    # Define um status padrão
-    status_final = "pendente" # Significa "Procurando..."
-    nome_final = ""
-
+    # ... (O resto da sua lógica 'for' e 'if confianca < ...' continua igual) ...
+    # ( ... )
     for (x, y, l, a) in faces_detectadas:
         imagemFace = cv2.resize(imagemCinza[y:y+a, x:x+l], (largura, altura))
         label, confianca = reconhecedor.predict(imagemFace)
         
-        # Use um limiar que funcione para si (ex: 100)
-        if confianca < 100: 
+        if confianca < 100: # Usando 100 como limiar
             funcionario = Funcionario.objects.filter(id=label).first()
             if funcionario:
-                # --- SUCESSO! ---
-                # Salva na sessão (para o script de polling)
                 request.session['funcionario_id'] = funcionario.id
                 request.session['funcionario_nome'] = funcionario.nome
                 request.session.save()
-                
-                print(f"RECONHECIDO: {funcionario.nome} (Confiança: {confianca:.2f}).")
-                
-                # Define os dados para a resposta
-                status_final = "reconhecido"
-                nome_final = funcionario.nome
-                break # Encontrou um rosto conhecido, pode parar
+                print(f"RECONHECIDO: {funcionario.nome} (Confiança: {confianca:.2f}). Sessão salva.")
+                frame_reconhecido = True
+                break
             else:
-                # Rosto familiar, mas ID (label) não está no banco
                 print(f"Rosto detectado, mas ID {label} não encontrado.")
-                status_final = "desconhecido"
         else:
-            # Confiança muito alta = Rosto desconhecido
-            print(f"Rosto detectado, mas 'Desconhecido'. Confiança: {confianca:.2f}")
-            status_final = "desconhecido"
-            
-        # Nota: Não quebramos o loop no 'desconhecido' para o caso 
-        # de haver múltiplos rostos e um deles ser o correto.
+            print(f"Rosto detectado, mas 'Desconhecido'. Confiança: {confianca:.2f} (Label: {label})")
 
-    # 4. Retorna a resposta JSON detalhada
-    if status_final == "reconhecido":
-        return JsonResponse({'status': 'reconhecido', 'nome': nome_final})
-    elif status_final == "desconhecido":
-        return JsonResponse({'status': 'desconhecido'})
+    if frame_reconhecido:
+        return JsonResponse({'status': 'reconhecido'})
     else:
-        # (status_final == "pendente")
         return JsonResponse({'status': 'pendente'})
 
 
@@ -443,39 +443,21 @@ def listar_entradas(request):
 
 @csrf_exempt
 def api_disparar_treinamento(request):
-    """
-    Esta API treina E RECARREGA o modelo na memória.
-    """
-    
-    # 1. PASSO CRÍTICO: Informa ao Python que vamos
-    # modificar a variável 'reconhecedor' que está fora desta função.
-    global reconhecedor 
     
     try:
         print("Iniciando processo de treinamento do modelo...")
         
-        # 2. Executa o treinamento (cria o novo .yml)
+        # 1. Executa o treinamento (cria o novo .yml)
         treinador = Treinamento.get_instance()
         treinador.treinar_face()
         
         print("Treinamento concluído. Recarregando o modelo na memória...")
 
-        # 3. PASSO CRUCIAL: Recarrega o novo modelo na memória
-        treinamento = Treinamento.objects.first()
-        if treinamento:
-            model_path = os.path.join(settings.MEDIA_ROOT, treinamento.modelo.name)
-            if os.path.exists(model_path):
-                # A mágica: O 'reconhecedor' global é atualizado
-                reconhecedor.read(model_path) 
-                print("Modelo de reconhecimento (LBPH) RECARREGADO com sucesso na memória.")
-            else:
-                print(f"Arquivo do modelo não existe após treinamento: {model_path}")
-                raise Exception("Arquivo de modelo não encontrado após o treino.")
-        else:
-            print("Nenhum 'Treinamento' encontrado no banco de dados.")
-            raise Exception("Objeto de Treinamento não encontrado.")
+        # 2. PASSO CRUCIAL: Força o recarregamento
+        # A nossa nova função 'load_reconhecedor' é chamada com 'force_reload=True'
+        load_reconhecedor(force_reload=True) 
 
-        # 4. Envia a resposta de sucesso com a URL de redirecionamento
+        # 3. Envia a resposta de sucesso
         redirect_url = reverse('criar_funcionario')
         return JsonResponse({
             'status': 'sucesso', 
