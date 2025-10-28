@@ -8,44 +8,119 @@
     </p>
 
     <div style="text-align:center;">
-        <img src="{% url 'camera_reconhecimento' %}" width="550" height="500"
-            style="border:3px solid #1f618d; border-radius:10px; object-fit:cover;" />
+        <video id="webcam" width="640" height="480" autoplay playsinline
+            style="border: 3px solid #ddd; border-radius: 10px;"></video>
+
+        <h2 id="status-nome" style="margin-top: 15px; color: #566573; height: 3rem;">
+            Procurando...
+        </h2>
+        <canvas id="canvas" width="640" height="480" style="display: none;"></canvas>
+    </div>
+
+    <div class="d-grid gap-2 mt-3">
+        <a href="{% url 'criar_funcionario' %}" class="btn btn-outline-primary">Voltar</a>
     </div>
 
 </div>
 
 <script>
-    // Inicia um "verificador" que executa a cada 1.5 segundos (1500ms)
-    const intervalId = setInterval(() => {
-
-        // Faz uma requisição para a sua nova view 'verifica_status_reconhecimento'
-        fetch("{% url 'verifica_status_reconhecimento' %}", { credentials: 'include' })
-            .then(response => response.json()) // Converte a resposta para JSON
+    setInterval(function() {
+        fetch("{% url 'verifica_status_reconhecimento' %}")
+            .then(response => response.json())
             .then(data => {
-                console.log("Status:", data.status); // Útil para depurar no console do navegador (F12)
-
-                // Se o servidor respondeu 'sucesso', significa que um rosto foi reconhecido
-                if (data.status === 'sucesso') { // É uma boa prática verificar o status
-
-                    const mensagemConfirmacao = `Você confirma que é ${data.funcionario_nome}?`;
-
-                    if (window.confirm(mensagemConfirmacao)) {
-                        // Se o usuário clicou em "OK"
-                        console.log("Usuário confirmou. Redirecionando para:", data.redirect_url);
-                        alert('Identidade confirmada! Registrando entrada...');
-                        window.location.href = data.redirect_url;
-
-                    } else {
-                        // Se o usuário clicou em "Cancelar"
-                        // console.log("Usuário negou a identidade. Voltando para a página anterior.");
-                        alert('Operação cancelada. Tente novamente.');
-                        window.history.back();
-                    }
+                if (data.status === 'sucesso') {
+                    // Redireciona!
+                    window.location.href = data.redirect_url;
                 }
-                // Opcional: Adicione um 'else' aqui para tratar casos onde o status não é 'sucesso'
             });
-
-    }, 5000); // O tempo da verificação é de 1.5 segundos. Pode ajustar se necessário.
+    }, 1000); // Verifica a cada segundo
 </script>
 
+<script>
+    const video = document.getElementById('webcam');
+    const canvas = document.getElementById('canvas');
+    const context = canvas.getContext('2d');
+    
+    // ==========================================================
+    // 2. PEGAR O NOVO ELEMENTO H2
+    // ==========================================================
+    const statusNome = document.getElementById('status-nome');
+    // ==========================================================
+
+    const postFrameUrl = "{% url 'processar_frame_reconhecimento' %}";
+
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+    const csrftoken = getCookie('csrftoken');
+
+    // 1. Pedir permissão para a câmera
+    navigator.mediaDevices.getUserMedia({ video: true })
+        .then(function(stream) {
+            video.srcObject = stream;
+            video.play();
+            
+            // 2. Enviar frames (aumentei o intervalo para 500ms para poupar processamento)
+            setInterval(sendFrameToServer, 500); // 2 frames por segundo
+        })
+        .catch(function(err) {
+            console.error("Erro ao acessar a câmera: ", err);
+            statusNome.innerText = 'Erro de Câmera';
+            statusNome.style.color = '#dc3545';
+        });
+
+    // 3. Função que envia o frame
+    function sendFrameToServer() {
+        context.drawImage(video, 0, 0, canvas.width, canvas.height);
+        const dataURL = canvas.toDataURL('image/jpeg', 0.7);
+
+        fetch(postFrameUrl, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrftoken
+            },
+            body: JSON.stringify({
+                image: dataURL
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            // ==========================================================
+            // 3. ATUALIZAR O H2 COM BASE NA RESPOSTA DA API
+            // ==========================================================
+            if (data.status === 'reconhecido') {
+                statusNome.innerText = data.nome;
+                statusNome.style.color = '#198754'; // Verde (Sucesso)
+                
+                // O script de polling vai tratar do redirecionamento
+                console.log("Servidor reconheceu! Aguardando redirecionamento...");
+
+            } else if (data.status === 'desconhecido') {
+                statusNome.innerText = 'Desconhecido';
+                statusNome.style.color = '#dc3545'; // Vermelho (Perigo)
+            
+            } else { // 'pendente' ou qualquer outro
+                statusNome.innerText = 'Procurando...';
+                statusNome.style.color = '#566573'; // Cinza (Padrão)
+            }
+            // ==========================================================
+        })
+        .catch(err => {
+            console.error("Erro ao enviar frame:", err);
+            // Não mude o status aqui para não piscar
+        });
+    }
+</script>
 {% endblock %}

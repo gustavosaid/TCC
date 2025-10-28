@@ -5,6 +5,11 @@
     body {
         background-color: rgb(234, 238, 238);
     }
+    .amostra-img {
+        width: 80px;
+        height: 80px;
+        object-fit: cover;
+    }
 </style>
 
 <body class="d-flex justify-content-center align-items-center vh-100">
@@ -13,113 +18,301 @@
             <div class="col-md-10 col-lg-8 border shadow-sm p-5 rounded bg-body">
                 <nav class="navbar bg-body ">
                     <div class="container justify-content-center">
-                        <img src="../media/assets/brasaosuperior.png" alt="Brasao Camara Municipal" width="170"
-                            height="80">
+                        <img src="../media/assets/brasaosuperior.png" alt="Brasao Camara Municipal" width="170" height="80">
                     </div>
                 </nav>
                 <div class="text-center mb-4">
-                    <h2 class="border-bottom pb-2">Registro de entrada</h2>
+                    <h2 class="border-bottom pb-2">Coleta de Amostras</h2>
                 </div>
 
                 <div class="d-flex flex-column flex-lg-row gap-4 ">
                     <div class="col-md-5">
                         <img class="img-fluid rounded border border-dark mb-3"
-                            src="{% if funcionario.funcionario_coletas.last %}{{ funcionario.funcionario_coletas.last.image.url }}
-                        ?t={{ funcionario.funcionario_coletas.last.created_at.timestamp }}{% else %}{{ funcionario.foto.url }}{% endif %}" alt="Foto da pessoa"
-                            width="250">
+                            src="{% if funcionario.funcionario_coletas.last %}{{ funcionario.funcionario_coletas.last.image.url }}?t={{ funcionario.funcionario_coletas.last.created_at.timestamp }}{% else %}{{ funcionario.foto.url }}{% endif %}"
+                            alt="Foto da pessoa" width="250">
 
                         <p><strong>Nome:</strong> {{ funcionario.nome }}</p>
                         <p><strong>Documento:</strong> {{ funcionario.cpf }}</p>
+                        <hr>
+                        <h5>Amostras Salvas ({{ num_coletas }}/{{ max_coletas }})</h5>
+                        <div class="d-flex flex-wrap gap-2" style="max-height: 200px; overflow-y: auto;">
+                            {% for coleta in funcionario.funcionario_coletas.all %}
+                            <div class="text-center">
+                                <img src="{{ coleta.image.url }}" alt="Amostra {{ forloop.counter }}"
+                                    class="img-fluid rounded border amostra-img">
+                            </div>
+                            {% empty %}
+                            <p class="small text-muted">Nenhuma amostra salva ainda.</p>
+                            {% endfor %}
+                        </div>
                     </div>
 
                     <div class="col-md-7">
-                        {% if not extracao_ok %}
-                        <div class="alert alert-warning text-center" role="alert">
-                            <i class="bi bi-exclamation-triangle-fill me-2"></i> Centralize seu rosto antes de extrairas amostras.
+
+                        {% if num_coletas < max_coletas %}
+                        
+                        <video id="webcam" width="400" height="300" autoplay playsinline
+                            class="img-fluid rounded border border-dark border-3 mb-3" style="background-color: #333;"></video>
+                        <canvas id="canvas" width="400" height="300" style="display: none;"></canvas>
+
+                        <div id="status-coleta" class="alert alert-info" role="alert">
+                            Posicione o rosto na câmera. Você tem <strong>{{ num_coletas }}</strong> de
+                            <strong>{{ max_coletas }}</strong> amostras.
                         </div>
 
-                        <img class="img-fluid rounded border border-dark border-3 mb-3" id="webcam"
-                            src="{% url 'detectar_camera' %}" width="400">
-
-                        <form method="POST" action="{% url 'criar_coleta_faces' funcionario.id %}">
+                        <form method="POST" action="{% url 'criar_coleta_faces' funcionario.id %}" class="mb-3">
                             {% csrf_token %}
-                            <div class="mb-3"> <label for="observacao" class="form-label">Observação:</label>
-                                <div class="mb-3">
-                                    {{ form.observacao.label_tag }}
-                                    <select name="observacao" class="form-select" id="id_observacao">
-                                        <option value="" selected>Selecione um setor...</option>
-                                        <option value="Gab. Antonio Jorge (Toninho Cury)">Gab. Antonio Jorge (Toninho
-                                            Cury)</option>
-                                        <option value="Gab. Brenda Evelly">Gab. Brenda Evelly</option>
-                                        <option value="Gab. Elizabeth (Profº Beth)">Gab. Elizabeth (Profº Beth)</option>
-                                        <option value="Gab. Ezequiel">Gab. Ezequiel</option>
-                                        <option value="Gab. Gladston">Gab. Gladston</option>
-                                        <option value="Gab. Itamar">Gabiente Itamar</option>
-                                        <option value="Gab. Jõao Batista (Cabo Batista)">Gab. Jõao Batista (CaboBatista)</option>
-                                        <option value="Gab. José Carlos (Carlito)">Gab. José Carlos (Carlito)</option>
-                                        <option value="Gab. José Eustáquio">Gab. José Eustáquio</option>
-                                        <option value="Gab. José Luiz">Gab. José Luiz</option>
-                                        <option value="Gab. Júlio César">Gab. Júlio César</option>
-                                        <option value="Gab. Leomar (Sgt Leomar)">Gab. Leomar (Sgt Leomar)</option>
-                                        <option value="Gab. Mauri (Mauri da JL)">Gab. Mauri (Mauri da JL)</option>
-                                        <option value="Gab. Otaviano">Gab. Otaviano</option>
-                                        <option value="Gab. Paulo Augusto (Paulinho)">Gab. Paulo Augusto (Paulinho)</option>
-                                        <option value="Gab. Paulo Henrique">Gab. Paulo Henrique</option>
-                                        <option value="Gab. Willian ">Gab. Willian </option>
-                                        <option value="Plenário ">Plenário</option>
-                                        <option value="Presidência">Presidência</option>
+                            <div class="mb-3">
+                                <label for="id_observacao" class="form-label">Observação (Setor de Destino):</label>
+                                
+                                <select name="observacao" class="form-select" id="id_observacao">
+                                    <option value="" {% if not observacao %}selected{% endif %}>Selecione um setor...</option>
+                                    <option value="Gab. Antonio Jorge (Toninho Cury)" {% if observacao == "Gab. Antonio Jorge (Toninho Cury)" %}selected{% endif %}>
+                                        Gab. Antonio Jorge (Toninho Cury)
+                                    </option>
+                                    <option value="Gab. Brenda Evelly" {% if observacao == "Gab. Brenda Evelly" %}selected{% endif %}>
+                                        Gab. Brenda Evelly
+                                    </option>
+                                    <option value="Gab. Elizabeth (Profº Beth)" {% if observacao == "Gab. Elizabeth (Profº Beth)" %}selected{% endif %}>
+                                        Gab. Elizabeth (Profº Beth)
+                                    </option>
                                     </select>
-                                    {{ form.observacao }}
-                                </div>
                             </div>
-                            {% if messages %}
-                            <ul class="messages list-unstyled">
-                                {% for message in messages %}
-                                <li class="alert {% if message.tags %}alert-{{ message.tags }}{% endif %}">
-                                    {{ message }}
-                                </li>
-                                {% endfor %}
-                            </ul>
-                            {% endif %}
-                            <button class="btn btn-warning btn-lg w-100" type="submit"
-                                onclick="document.getElementById('cliked').value='True';">
-                                Extrair amostras
-                            </button>
-                            <input type="hidden" id="cliked" name="cliked" value="False">
+                            <button type="submit" class="btn btn-primary w-100">Salvar Observação</button>
                         </form>
 
-                        {% else %}
-                        <div class="alert alert-success text-center" role="alert">
-                            Amostras coletadas com sucesso!
-                        </div>
-
-                        <h3>Amostras Salvas - Ok</h3>
-                        <div class="d-flex flex-wrap gap-2">
-                            {% for file_path in file_paths %}
-                            <div class="col-2 mb-3">
-                                <div class="img-div">
-                                    <img src="{{ file_path.image.url }}" alt="Face sample" class="card-img-top"
-                                        width="50">
-                                    <div class="card-body text-center">
-                                        <h5 class="card-title">Face {{ forloop.counter }}</h5>
-                                    </div>
-                                </div>
-                            </div>
+                        {% if messages %}
+                        <ul class="messages list-unstyled">
+                            {% for message in messages %}
+                            <li class="alert {% if message.tags %}alert-{{ message.tags }}{% endif %}">
+                                {{ message }}
+                            </li>
                             {% endfor %}
+                        </ul>
+                        {% endif %}
+
+                        <button id="btn-coletar" class="btn btn-warning btn-lg w-100" type="button">
+                            <span id="btn-coletar-texto">Coletar 10 Amostras</span>
+                            <span id="btn-coletar-spinner" class="spinner-border spinner-border-sm" role="status"
+                                aria-hidden="true" style="display: none;"></span>
+                        </button>
+
+                        <button id="btn-treinar" class="btn btn-success btn-lg w-100 mt-2" type="button">
+                            <span id="btn-treinar-texto">Treinar Modelo</span>
+                            <span id="btn-treinar-spinner" class="spinner-border spinner-border-sm" role="status"
+                                aria-hidden="true" style="display: none;"></span>
+                        </button>
+                        <div id="status-treinamento" class="alert" style="display: none; margin-top: 15px;"></div>
+
+                        {% else %}
+                        
+                        <div class="alert alert-success text-center" role="alert">
+                            <i class="bi bi-check-circle-fill"></i> Limite de <strong>{{ max_coletas }}</strong>
+                            amostras atingido. Coleta concluída!
                         </div>
-                        <!-- FINALIZA EXTRAÇÃO -->
-
-                        {% endif %}
-
-                        {% if erro %} <!--Evento caso o usuario clicar 2 vezes no botao -->
-                        <h3 class="text-danger"> {{erro}}</h3>
-                        {% endif %}
                         <div class="d-grid gap-2 mt-3">
                             <a href="{% url 'criar_funcionario' %}" class="btn btn-outline-primary">Voltar</a>
                         </div>
-                    </div>
-
+                        
+                        {% endif %} </div>
                 </div>
             </div>
+        </div>
+    </div>
 </body>
-{% endblock %}
+
+{% if num_coletas < max_coletas %}
+<script>
+    // --- Pegar elementos do DOM ---
+    const video = document.getElementById('webcam');
+    const canvas = document.getElementById('canvas');
+    const btnColetar = document.getElementById('btn-coletar');
+    const statusColeta = document.getElementById('status-coleta');
+    const btnColetarTexto = document.getElementById('btn-coletar-texto');
+    const btnColetarSpinner = document.getElementById('btn-coletar-spinner');
+
+    // --- Constantes ---
+    const NUM_AMOSTRAS_A_COLETAR = 10;
+    const DELAY_ENTRE_FOTOS_MS = 500; // Aumentei o delay para 500ms (5ms era rápido demais)
+    const postFrameUrl = "{% url 'api_coletar_frame' %}";
+    const funcionarioId = "{{ funcionario.id }}";
+
+    // --- Função para pegar CSRF token (Reformatada) ---
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+    const csrftoken = getCookie('csrftoken');
+
+    // --- 1. Iniciar Câmera ---
+    navigator.mediaDevices.getUserMedia({ video: true })
+        .then(function (stream) {
+            video.srcObject = stream;
+            video.play();
+        })
+        .catch(function (err) {
+            console.error("Erro ao acessar a câmera: ", err);
+            atualizarStatus(`Erro ao acessar câmera: ${err.message}. Verifique as permissões.`, "danger");
+        });
+
+    // --- 2. Adicionar Evento ao Botão ---
+    btnColetar.addEventListener('click', iniciarColeta);
+
+    // --- 3. Função Principal de Coleta ---
+    async function iniciarColeta() {
+        toggleLoading(true, 'coletar'); // Passa 'coletar' como alvo
+        let coletasSalvas = 0;
+        let contagemTotalAtual = {{ num_coletas }};
+
+        // CORREÇÃO: Adicionado ')' no final do for
+        for (let i = 0; i < NUM_AMOSTRAS_A_COLETAR; i++) {
+
+            // CORREÇÃO: Adicionado ')' no final do if
+            if (contagemTotalAtual >= {{ max_coletas }}) {
+                atualizarStatus("Limite máximo de {{ max_coletas }} atingido.", "warning");
+                break;
+            }
+
+            atualizarStatus(`Capturando amostra ${i + 1} de ${NUM_AMOSTRAS_A_COLETAR}...`, "info");
+            await new Promise(resolve => setTimeout(resolve, DELAY_ENTRE_FOTOS_MS));
+            
+            const resultado = await capturarEEnviarFrame();
+
+            if (resultado.status === 'salvo') {
+                coletasSalvas++;
+                contagemTotalAtual = resultado.nova_contagem;
+                atualizarStatus(`Amostra ${i + 1} salva! (Total: ${contagemTotalAtual})`, "success");
+            } else {
+                atualizarStatus(`Erro: ${resultado.message}. Tentando novamente...`, "warning");
+                i--;
+            }
+        } // Fim do loop 'for'
+
+        toggleLoading(false, 'coletar');
+        atualizarStatus(`Coleta de ${coletasSalvas} amostras concluída! A página será recarregada.`, "success");
+
+        setTimeout(() => {
+            window.location.reload();
+        }, 2000);
+    } // Fim da função 'iniciarColeta'
+
+    // --- 4. Função de Captura e Envio (Fetch API) ---
+    async function capturarEEnviarFrame() {
+        const context = canvas.getContext('2d');
+        context.drawImage(video, 0, 0, canvas.width, canvas.height);
+        const dataURL = canvas.toDataURL('image/jpeg', 0.8);
+
+        try {
+            const response = await fetch(postFrameUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrftoken
+                },
+                body: JSON.stringify({
+                    image: dataURL,
+                    funcionario_id: funcionarioId
+                })
+            });
+            if (!response.ok) {
+                const errData = await response.json();
+                return { status: 'erro', message: errData.message || 'Erro de servidor.' };
+            }
+            return await response.json();
+        } catch (err) {
+            console.error("Erro no fetch:", err);
+            return { status: 'erro', message: 'Erro de conexão ao enviar frame.' };
+        }
+    } // Fim da função 'capturarEEnviarFrame'
+
+    // --- 5. Funções Auxiliares de UI ---
+    // Modifiquei 'toggleLoading' para aceitar qual botão desativar
+    function toggleLoading(isLoading, target) {
+        let btn, texto, spinner;
+
+        if (target === 'coletar') {
+            btn = btnColetar;
+            texto = btnColetarTexto;
+            spinner = btnColetarSpinner;
+        } else if (target === 'treinar') {
+            btn = btnTreinar;
+            texto = btnTreinarTexto;
+            spinner = btnTreinarSpinner;
+        } else {
+            return;
+        }
+
+        if (isLoading) {
+            btn.disabled = true;
+            texto.style.display = 'none';
+            spinner.style.display = 'inline-block';
+        } else {
+            btn.disabled = false;
+            texto.style.display = 'inline';
+            spinner.style.display = 'none';
+        }
+    }
+
+    function atualizarStatus(mensagem, tipo = "info") {
+        statusColeta.innerHTML = mensagem;
+        statusColeta.className = `alert alert-${tipo}`;
+    }
+
+    // --- 6. Script para o Botão de Treinar ---
+    const btnTreinar = document.getElementById('btn-treinar');
+    const btnTreinarTexto = document.getElementById('btn-treinar-texto');
+    const btnTreinarSpinner = document.getElementById('btn-treinar-spinner');
+    const statusTreinamento = document.getElementById('status-treinamento');
+    const treinarUrl = "{% url 'api_disparar_treinamento' %}";
+
+    btnTreinar.addEventListener('click', async () => {
+        toggleLoading(true, 'treinar');
+        statusTreinamento.style.display = 'block';
+        statusTreinamento.className = 'alert alert-info';
+        statusTreinamento.innerText = 'Treinamento iniciado... Isso pode levar alguns segundos.';
+
+        try {
+            const response = await fetch(treinarUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrftoken
+                }
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                statusTreinamento.className = 'alert alert-success';
+                statusTreinamento.innerText = data.message;
+
+                // REDIRECIONA APÓS 2 SEGUNDOS (para o usuário ler a msg)
+                setTimeout(() => {
+                    window.location.href = data.redirect_url; // <-- USA A URL DA API
+                }, 2000);
+            } else {
+                statusTreinamento.className = 'alert alert-danger';
+                statusTreinamento.innerText = `Erro: ${data.message}`;
+            }
+
+        } catch (err) {
+            console.error("Erro ao disparar treinamento:", err);
+            statusTreinamento.className = 'alert alert-danger';
+            statusTreinamento.innerText = 'Erro de conexão ao iniciar treinamento.';
+        } finally {
+            toggleLoading(false, 'treinar');
+        }
+    });
+
+</script>
+{% endif %} {% endblock %}

@@ -1,0 +1,206 @@
+{% extends 'base.html' %}
+{% block content %}
+<style>
+    /* ------------------- */
+    /* Estilos Gerais     */
+    /* ------------------- */
+    :root {
+        --cor-primaria: #007bff;
+        --cor-primaria-hover: #0056b3;
+        --cor-fundo: #f8f9fa;
+        --cor-cartao: #ffffff;
+        --cor-texto: #333;
+        --cor-borda: #dee2e6;
+        --sombra-suave: 0 4px 8px rgba(0,0,0,0.05);
+        --raio-borda: 8px;
+    }
+
+    body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        background-color: var(--cor-fundo);
+        color: var(--cor-texto);
+        line-height: 1.6;
+    }
+
+    .container {
+        max-width: 900px;
+        margin: 40px auto;
+        padding: 20px;
+    }
+
+    h1, h2 {
+        color: var(--cor-primaria);
+        border-bottom: 2px solid var(--cor-borda);
+        padding-bottom: 10px;
+        margin-bottom: 20px;
+    }
+
+    /* ------------------- */
+    /* Seção do Filtro    */
+    /* ------------------- */
+    .filtro {
+        background-color: var(--cor-cartao);
+        padding: 25px;
+        border-radius: var(--raio-borda);
+        box-shadow: var(--sombra-suave);
+        margin-bottom: 40px;
+    }
+
+    .filtro h3 {
+        margin-top: 0;
+        margin-bottom: 20px;
+        font-size: 1.25em;
+    }
+
+    .filtro form {
+        display: flex;
+        flex-wrap: wrap; /* Permite que os itens quebrem para a linha de baixo em telas menores */
+        gap: 20px; /* Espaçamento entre os elementos */
+        align-items: flex-end; /* Alinha os itens na base */
+    }
+
+    .form-group {
+        display: flex;
+        flex-direction: column;
+        flex-grow: 1; /* Faz os campos de data crescerem para ocupar o espaço */
+    }
+
+    .form-group label {
+        font-weight: 600;
+        margin-bottom: 5px;
+        font-size: 0.9em;
+    }
+
+    .form-group input[type="date"] {
+        padding: 10px;
+        border: 1px solid var(--cor-borda);
+        border-radius: var(--raio-borda);
+        font-size: 1em;
+    }
+    
+    .form-actions {
+        display: flex;
+        gap: 10px;
+    }
+
+    /* Estilo do Botão Principal */
+    .btn {
+        padding: 10px 20px;
+        font-size: 1em;
+        font-weight: 600;
+        border: none;
+        border-radius: var(--raio-borda);
+        cursor: pointer;
+        text-decoration: none;
+        display: inline-block;
+        text-align: center;
+        transition: background-color 0.2s ease-in-out, color 0.2s ease-in-out;
+    }
+    
+    .btn-primary {
+        background-color: var(--cor-primaria);
+        color: white;
+    }
+
+    .btn-primary:hover {
+        background-color: var(--cor-primaria-hover);
+    }
+
+    /* Estilo do Botão/Link Secundário */
+    .btn-secondary {
+        background-color: #6c757d;
+        color: white;
+    }
+    
+    .btn-secondary:hover {
+        background-color: #5a6268;
+    }
+
+    /* ------------------- */
+    /* Resultados         */
+    /* ------------------- */
+    .lista-resultados {
+        display: grid;
+        gap: 20px;
+    }
+
+    .entrada {
+        background-color: var(--cor-cartao);
+        padding: 20px;
+        border-radius: var(--raio-borda);
+        box-shadow: var(--sombra-suave);
+        border-left: 5px solid var(--cor-primaria);
+    }
+    
+    .entrada p {
+        margin: 0 0 10px 0;
+    }
+
+    .entrada p:last-child {
+        margin-bottom: 0;
+    }
+
+    .sem-resultados {
+        background-color: var(--cor-cartao);
+        padding: 20px;
+        text-align: center;
+        border-radius: var(--raio-borda);
+        font-style: italic;
+    }
+
+</style>
+
+<div class="container">
+    <h1>Entradas de Setores/Gabinetes</h1>
+
+    <div class="filtro">
+        <h3>Filtrar por Período</h3>
+        <form method="GET" action="{% url 'listar_entradas' %}">
+            <div class="form-group">
+                <label for="data_inicio">De:</label>
+                <input type="date" name="data_inicio" id="data_inicio" value="{{ data_inicio_val|default:'' }}">
+            </div>
+            
+            <div class="form-group">
+                <label for="data_fim">Até:</label>
+                <input type="date" name="data_fim" id="data_fim" value="{{ data_fim_val|default:'' }}">
+            </div>
+
+            <div class="form-group">
+                <label for="funcionario">Funcionário:</label>
+                <select name="funcionario" id="funcionario" style="padding: 10px; border: 1px solid #dee2e6; border-radius: 8px;">
+                    <option value="">Todos</option> {% for func in todos_funcionarios %}
+                        <option 
+                            value="{{ func.id }}"
+                            {% if func.id|stringformat:"s" == funcionario_selecionado_id %}selected{% endif %}>
+                            {{ func.nome }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary">Buscar</button>
+                <a href="{% url 'carrega_entrada' %}" class="btn btn-secondary">Limpar</a>
+                <!-- <a href="{% url 'criar_funcionario' %}" class="btn btn-info">Voltar</a> -->
+            </div>
+
+        </form>
+    </div>
+
+    <h2>Resultados</h2>
+
+    <div class="lista-resultados">
+        {% for entrada in entradas %}
+            <div class="entrada">
+                <p><strong>Gabinete:</strong> {{ entrada.gabinete }}</p>
+                <p><strong>Nome:</strong> {{ entrada.funcionario.nome }}</p>
+                <p><strong>Data:</strong> {{ entrada.timestamp|date:"d/m/Y" }}</p>
+            </div>
+        {% empty %}
+            <p class="sem-resultados">Nenhuma entrada encontrada para o período selecionado.</p>
+            {% endfor %}
+            <a href="{% url 'criar_funcionario' %}" class="btn btn-info">Voltar</a>
+    </div>
+</div>
+{% endblock %}

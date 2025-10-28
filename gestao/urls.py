@@ -4,12 +4,13 @@ from django.urls import path,include
 from django.conf import settings
 from django.conf.urls.static import static
 from rest_framework.routers import DefaultRouter
-from registro.api.views import FuncionarioViewSet, TreinamentoViewSet, ColetaFacesViewSet
+from registro.api.views import FuncionarioViewSet, TreinamentoViewSet, ColetaFacesViewSet, RegistroEntradaViewSet
 
 router = DefaultRouter()
 router.register('funcionarios', FuncionarioViewSet)
 router.register('treinamento', TreinamentoViewSet)
 router.register('coletaFace', ColetaFacesViewSet)
+router.register('registroEntrada', RegistroEntradaViewSet)
 
 urlpatterns = [
     path('admin/', admin.site.urls),

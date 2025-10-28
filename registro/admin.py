@@ -9,7 +9,7 @@ class ColetaFacesInline(admin.StackedInline):
 class FuncionarioAdmin(admin.ModelAdmin):
     readonly_fields = ['slug']
     readonly_fields = ['cpf']
-    fields = ['nome', 'cpf', 'observacao', 'dataHora']
+    fields = ['nome', 'cpf','dataHora',]
     inlines = (ColetaFacesInline,)
 
 admin.site.register(Funcionario, FuncionarioAdmin)
